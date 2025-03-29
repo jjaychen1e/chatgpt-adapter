@@ -23,5 +23,8 @@ build-linux-arm64:
 build-osx:
 	${ENV} GOARCH=amd64 GOOS=darwin go build -gcflags=all="-N -l" -toolexec iocgo -ldflags="-s -w" -o bin/osx/${TARGET_EXEC} -trimpath main.go
 
+build-osx-arm64:
+	${ENV} GOARCH=arm64 GOOS=darwin go build -gcflags=all="-N -l" -toolexec iocgo -ldflags="-s -w" -o bin/osx/${TARGET_EXEC}-arm64 -trimpath main.go
+
 build-win:
 	${ENV} GOARCH=amd64 GOOS=windows go build -gcflags=all="-N -l" -toolexec iocgo -ldflags="-s -w" -o bin/windows/${TARGET_EXEC}.exe -trimpath main.go
