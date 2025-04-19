@@ -4,13 +4,14 @@ import (
 	"chatgpt-adapter/core/common/inited"
 	"chatgpt-adapter/core/gin/inter"
 	"chatgpt-adapter/core/logger"
+	"os"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk"
 	"github.com/iocgo/sdk/cobra"
 	"github.com/iocgo/sdk/env"
 	"github.com/sirupsen/logrus"
-	"os"
-	"strings"
 )
 
 type RootCommand struct {
@@ -54,6 +55,7 @@ func New(container *sdk.Container, engine *gin.Engine, config string) (rc cobra.
 
 func (rc *RootCommand) Run(cmd *cobra.Command, args []string) {
 	if rc.env.GetBool("server.debug") {
+		rc.LogLevel = "debug"
 		println(rc.container.HealthLogger())
 	}
 

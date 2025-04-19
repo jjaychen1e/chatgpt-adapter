@@ -34,30 +34,65 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 	// 	return
 	// }
 
-	response, err = emit.ClientBuilder(common.HTTPClient).
+	// Prepare headers map for easier logging
+	headers := map[string]string{
+		"authorization":            "Bearer " + cookie,
+		"content-type":             "application/connect+proto",
+		"connect-accept-encoding":  "gzip",
+		"connect-content-encoding": "gzip",
+		"connect-protocol-version": "1",
+		"traceparent":              "00-" + strings.ReplaceAll(uuid.NewString(), "-", "") + "-" + common.Hex(16) + "-00",
+		"user-agent":               "connect-es/1.6.1",
+		"x-amzn-trace-id":          "Root=" + uuid.NewString(),
+		"x-client-key":             genClientKey(ctx.GetString("token")),
+		"x-cursor-checksum":        genChecksum(ctx, env),
+		"x-cursor-client-version":  "0.46.2",
+		"x-cursor-timezone":        "Asia/Shanghai",
+		"x-ghost-mode":             "false",
+		"x-request-id":             uuid.NewString(),
+		"x-session-id":             uuid.NewString(),
+		"host":                     "api2.cursor.sh",
+		"Connection":               "close",
+		"Transfer-Encoding":        "chunked",
+	}
+
+	// Log headers if debug is enabled
+	if true {
+		logger.Debug("Cursor API Request Headers:")
+		for key, value := range headers {
+			// Mask sensitive information
+			if key == "authorization" {
+				logger.Debugf("  %s: Bearer ***", key)
+			} else {
+				logger.Debugf("  %s: %s", key, value)
+			}
+		}
+	}
+
+	// Build and execute request with headers
+	client := emit.ClientBuilder(common.HTTPClient).
 		Context(ctx.Request.Context()).
 		Proxies(env.GetString("server.proxied")).
-		POST("https://api2.cursor.sh/aiserver.v1.AiService/StreamChat").
-		Header("authorization", "Bearer "+cookie).
-		Header("content-type", "application/connect+proto").
-		Header("connect-accept-encoding", "gzip").
-		Header("connect-content-encoding", "gzip").
-		Header("connect-protocol-version", "1").
-		Header("traceparent", "00-"+strings.ReplaceAll(uuid.NewString(), "-", "")+"-"+common.Hex(16)+"-00").
-		Header("user-agent", "connect-es/1.6.1").
-		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
-		Header("x-client-key", genClientKey(ctx.GetString("token"))).
-		Header("x-cursor-checksum", genChecksum(ctx, env)).
-		Header("x-cursor-client-version", "0.46.2").
-		Header("x-cursor-timezone", "Asia/Shanghai").
-		Header("x-ghost-mode", "false").
-		Header("x-request-id", uuid.NewString()).
-		Header("x-session-id", uuid.NewString()).
-		Header("host", "api2.cursor.sh").
-		Header("Connection", "close").
-		Header("Transfer-Encoding", "chunked").
-		Bytes(buffer).
-		DoC(emit.Status(http.StatusOK), emit.IsPROTO)
+		POST("https://api2.cursor.sh/aiserver.v1.AiService/StreamChat")
+
+	// Apply headers from map
+	for key, value := range headers {
+		client = client.Header(key, value)
+	}
+
+	response, err = client.Bytes(buffer).DoC(emit.Status(http.StatusOK), emit.IsPROTO)
+
+	// Log response headers if debug is enabled and response is successful
+	if env.GetBool("server.debug") && err == nil && response != nil {
+		logger.Debug("Cursor API Response Headers:")
+		for key, values := range response.Header {
+			for _, value := range values {
+				logger.Debugf("  %s: %s", key, value)
+			}
+		}
+		logger.Debugf("  Status: %s", response.Status)
+	}
+
 	return
 }
 
@@ -160,20 +195,30 @@ func genClientKey(token string) string {
 func genChecksum(ctx *gin.Context, env *env.Environment) string {
 	token := ctx.GetString("token")
 	checksum := ctx.GetHeader("x-cursor-checksum")
+	logger.Debug("Generating checksum - Input parameters:")
+	logger.Debugf("  Initial x-cursor-checksum header: %s", checksum)
 
 	if checksum == "" {
 		checksum = env.GetString("cursor.checksum")
+		logger.Debugf("  Using cursor.checksum from env: %s", checksum)
+
 		if strings.HasPrefix(checksum, "http") {
+			logger.Debug("HTTP checksum URL detected, fetching from cache or remote")
 			cacheManager := cache.CursorCacheManager()
-			value, err := cacheManager.GetValue(common.CalcHex(token))
+			tokenHash := common.CalcHex(token)
+			logger.Debugf("  Token hash for cache: %s", tokenHash)
+
+			value, err := cacheManager.GetValue(tokenHash)
 			if err != nil {
 				logger.Error(err)
 				return ""
 			}
 			if value != "" {
+				logger.Debug("  Found cached checksum value")
 				return value
 			}
 
+			logger.Debugf("  Fetching checksum from URL: %s", checksum)
 			response, err := emit.ClientBuilder(common.HTTPClient).GET(checksum).
 				DoC(emit.Status(http.StatusOK), emit.IsTEXT)
 			if err != nil {
@@ -182,15 +227,20 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 			}
 			checksum = emit.TextResponse(response)
 			response.Body.Close()
+			logger.Debugf("  Received checksum from HTTP: %s", checksum)
 
-			_ = cacheManager.SetWithExpiration(common.CalcHex(token), checksum, 30*time.Minute) // 缓存30分钟
+			logger.Debug("  Caching checksum value for 30 minutes")
+			_ = cacheManager.SetWithExpiration(tokenHash, checksum, 30*time.Minute)
 			return checksum
 		}
 	}
 
 	if checksum == "" {
+		logger.Debug("Generating dynamic checksum")
 		// 不采用全局设备码方式，而是用cookie产生。更换时仅需要重新抓取新的WorkosCursorSessionToken即可
 		salt := strings.Split(token, ".")
+		logger.Debugf("  Salt length: %d", len(salt))
+
 		calc := func(data []byte) {
 			var t byte = 165
 			for i := range data {
@@ -203,6 +253,8 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 		t := time.Now()
 		t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 30*(t.Minute()/30), 0, 0, t.Location()) // 每个半小时轮换一次
 		timestamp := int64(math.Floor(float64(t.UnixMilli()) / 1e6))
+		logger.Debugf("  Using timestamp for checksum: %d", timestamp)
+
 		data := []byte{
 			byte((timestamp >> 8) & 0xff),
 			byte(timestamp & 0xff),
@@ -211,13 +263,22 @@ func genChecksum(ctx *gin.Context, env *env.Environment) string {
 			byte((timestamp >> 8) & 0xff),
 			byte(timestamp & 0xff),
 		}
+		logger.Debugf("  Initial data bytes: %v", data)
+
 		calc(data)
+		logger.Debugf("  Calculated data bytes: %v", data)
+
 		hex1 := sha256.Sum256([]byte(salt[1]))
 		hex2 := sha256.Sum256([]byte(token))
+		logger.Debug("  Generated SHA256 hashes")
+
 		// 前面的字符生成存在问题，先硬编码
 		// woc , 粗心大意呀
 		checksum = fmt.Sprintf("%s%s/%s", base64.RawStdEncoding.EncodeToString(data), hex.EncodeToString(hex1[:]), hex.EncodeToString(hex2[:]))
+		logger.Debug("  Generated final dynamic checksum")
 	}
+
+	logger.Debugf("Returning checksum: %s", checksum)
 	return checksum
 }
 
