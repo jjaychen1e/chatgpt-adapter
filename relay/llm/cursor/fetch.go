@@ -69,22 +69,9 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 			Content:   message.GetString("content"),
 		}
 	}).ToSlice()
-	// Add empty user message if all messages are non-user
-	hasUser := false
-	for _, msg := range messages {
-		if msg.Role == 1 { // Role 1 is user
-			hasUser = true
-			break
-		}
-	}
-	if !hasUser && len(messages) > 0 {
-		messages = append([]*ChatMessage_UserMessage{
-			{
-				MessageId: uuid.NewString(),
-				Role:      1, // User role
-				Content:   "",
-			},
-		}, messages...)
+	// Cursor requires at least one user message
+	if len(messages) == 1 && messages[0].Role != 1 {
+		messages[0].Role = 1 // Convert to user role
 	}
 	message := &ChatMessage{
 		Messages:      messages,
