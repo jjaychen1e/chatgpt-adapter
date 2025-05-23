@@ -10,17 +10,18 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/iocgo/sdk/env"
 	"github.com/iocgo/sdk/stream"
-	"math"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
 )
 
 var (
@@ -66,7 +67,7 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
 		Header("x-client-key", genClientKey(ctx.GetString("token"))).
 		Header("x-cursor-checksum", genChecksum(ctx, env)).
-		Header("x-cursor-client-version", "0.48.9").
+		Header("x-cursor-client-version", "0.50.0").
 		Header("x-cursor-config-version", configVersion).
 		Header("x-cursor-timezone", "Asia/Shanghai").
 		Header("x-ghost-mode", "false").
@@ -107,7 +108,7 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 		Header("x-amzn-trace-id", "Root="+uuid.NewString()).
 		Header("x-client-key", genClientKey(ctx.GetString("token"))).
 		Header("x-cursor-checksum", genChecksum(ctx, env)).
-		Header("x-cursor-client-version", "0.48.9").
+		Header("x-cursor-client-version", "0.50.0").
 		Header("x-cursor-config-version", configVersion).
 		Header("x-cursor-timezone", "Asia/Shanghai").
 		Header("x-ghost-mode", "false").
