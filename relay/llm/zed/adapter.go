@@ -1,4 +1,4 @@
-package qodo
+package zed
 
 import (
 	"chatgpt-adapter/core/common"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	Model = "qodo"
+	Model = "zed"
 )
 
 type api struct {
@@ -21,23 +21,15 @@ type api struct {
 }
 
 func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
-	if len(model) <= 5 {
+	if len(model) <= 4 || Model+"/" != model[:4] {
 		return
 	}
-
-	slice := api.env.GetStringSlice("qodo.model")
+	slice := api.env.GetStringSlice("zed.model")
 	for _, mod := range append(slice, []string{
-		"claude-3-5-sonnet",
-		"gpt-4o",
-		"o1",
-		"o3-mini",
-		"o3-mini-high",
-		"gemini-2.0-flash",
-		"deepseek-r1",
-		"deepseek-r1-full",
-		"claude-3-7-sonnet",
+		"claude-3-5-sonnet-latest",
+		"claude-3-7-sonnet-latest",
 	}...) {
-		if model[5:] == mod {
+		if model[4:] == mod {
 			ok = true
 			return
 		}
@@ -46,15 +38,9 @@ func (api *api) Match(ctx *gin.Context, model string) (ok bool, err error) {
 }
 
 func (api *api) Models() (slice []model.Model) {
-	for _, mod := range append(api.env.GetStringSlice("qodo.model"), []string{
-		"claude-3-5-sonnet",
-		"gpt-4o",
-		"o1",
-		"o3-mini",
-		"o3-mini-high",
-		"gemini-2.0-flash",
-		"deepseek-r1",
-		"deepseek-r1-full",
+	for _, mod := range append(api.env.GetStringSlice("zed.model"), []string{
+		"claude-3-5-sonnet-latest",
+		"claude-3-7-sonnet-latest",
 	}...) {
 		slice = append(slice, model.Model{
 			Id:      Model + "/" + mod,
@@ -81,17 +67,18 @@ func (api *api) ToolChoice(ctx *gin.Context) (ok bool, err error) {
 
 func (api *api) Completion(ctx *gin.Context) (err error) {
 	var (
+		cookie     = ctx.GetString("token")
 		proxied    = api.env.GetString("server.proxied")
 		completion = common.GetGinCompletion(ctx)
 	)
 
-	request, err := convertRequest(ctx, api.env, completion)
+	request, err := convertRequest(completion)
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 
-	r, err := fetch(ctx, proxied, request)
+	r, err := fetch(ctx, api.env, proxied, cookie, request)
 	if err != nil {
 		logger.Error(err)
 		return
