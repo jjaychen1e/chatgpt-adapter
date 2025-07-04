@@ -141,6 +141,22 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	if len(messages) == 1 && messages[0].Role != 1 {
 		messages[0].Role = 1 // Convert to user role
 	}
+
+	thinkingLevel := StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_UNSPECIFIED
+	if completion.ReasoningEffort == "low" {
+		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_MEDIUM
+	} else if completion.ReasoningEffort == "medium" {
+		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_MEDIUM
+	} else if completion.ReasoningEffort == "high" {
+		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_HIGH
+	}
+
+	modelName := completion.Model[7:]
+	maxMode := false
+	if modelName == "claude-4-opus" || modelName == "claude-4-opus-thinking" {
+		maxMode = true
+	}
+
 	message := &ChatMessage{
 		Content: &ChatMessage_Content{
 			Messages:      messages,
@@ -148,8 +164,9 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 			Empty3:        &Empty,
 			UnknownField4: 1,
 			Model: &ChatMessage_Content_Model{
-				Value:  completion.Model[7:],
-				Empty4: &Empty,
+				Value:   modelName,
+				Empty4:  &Empty,
+				MaxMode: &maxMode,
 			},
 			UnknownField15: &ChatMessage_Content_UnknownField15{
 				Empty3: &Empty,
@@ -160,8 +177,9 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 				UnknownField8: 1,
 				UnknownField9: 1,
 			},
-			UnknownField19: 1,
-			Uid:            uuid.NewString(),
+			UnknownField19:  1,
+			LongContextMode: true,
+			Uid:             uuid.NewString(),
 			Info: &ChatMessage_Content_Info{
 				Os:      "darwin",
 				Arch:    "x64",
@@ -175,15 +193,15 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 				Uuid:          mid,
 				UnknownField3: 1,
 			},
-			UnknownField35: &Zero,
-			UnknownField38: &Zero,
-			UnknownField46: 1,
-			Empty47:        &Empty,
-			UnknownField48: &Zero,
-			UnknownField49: &Zero,
-			UnknownField51: &Zero,
-			UnknownField53: &Zero,
-			Agent:          "Ask",
+			UseFullInputsContext: true,
+			UnknownField38:       &Zero,
+			UnknownField46:       1,
+			Empty47:              &Empty,
+			UnknownField48:       &Zero,
+			ThinkingLevel:        thinkingLevel,
+			UnknownField51:       &Zero,
+			UnknownField53:       &Zero,
+			Agent:                "Ask",
 		},
 	}
 

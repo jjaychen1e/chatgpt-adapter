@@ -2,6 +2,12 @@ syntax = "proto3";
 package  cursor;
 option go_package = "./cursor";
 
+enum StreamUnifiedChatRequestThinkingLevel {
+  THINKING_LEVEL_UNSPECIFIED = 0;
+  THINKING_LEVEL_MEDIUM = 1;
+  THINKING_LEVEL_HIGH = 2;
+}
+
 message BidiAppend {
 
   message SessionKey {
@@ -31,6 +37,7 @@ message ChatMessage {
     message Model {
       string value = 1;
       optional string empty4 = 4;
+      optional bool max_mode = 8;
     }
 
     message Unknown_field15 {
@@ -65,17 +72,18 @@ message ChatMessage {
     Model model = 5;
     Unknown_field15 unknown_field15 = 15;
     uint32 unknown_field19 = 19;
+    bool long_context_mode = 22;
     string uid = 23;
     Info info = 26;
     uint32 unknown_field27 = 27;
     optional string empty29 = 29;
     Unknown_field30 unknown_field30 = 30;
-    optional uint32 unknown_field35 = 35;
+    bool use_full_inputs_context = 35;
     optional uint32 unknown_field38 = 38;
     uint32 unknown_field46 = 46; // 2
     optional string empty47 = 47;
     optional uint32 unknown_field48 = 48;
-    optional uint32 unknown_field49 = 49;
+    StreamUnifiedChatRequestThinkingLevel thinking_level = 49;
     optional uint32 unknown_field51 = 51;
     optional uint32 unknown_field53 = 53;
     string agent = 54;
@@ -86,7 +94,14 @@ message ChatMessage {
 
 message ResMessage {
   message Msg {
+    message MessageThinking {
+      string text = 1;
+      string signature = 2;
+      string redacted_thinking = 3;
+      bool is_last_thinking_chunk = 4;
+    }
     string value = 1;
+    MessageThinking thinking = 25;
   }
 
   Msg msg = 2;

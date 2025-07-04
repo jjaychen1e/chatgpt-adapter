@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/iocgo/sdk/env"
 	"io"
 	"net/http"
 	"slices"
@@ -13,10 +12,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/iocgo/sdk/env"
+
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/common/vars"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
+
 	"github.com/bincooo/emit.io"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/proto"
@@ -109,7 +111,12 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	completion := common.GetGinCompletion(ctx)
 	tokens := ctx.GetInt(ginTokens)
 	thinkReason := env.Env.GetBool("server.think_reason")
-	thinkReason = thinkReason && (slices.Contains([]string{"deepseek-r1", "claude-3.7-sonnet-thinking", "gemini-2.0-flash-thinking-exp"}, completion.Model[7:]))
+	thinkReason = thinkReason && slices.Contains([]string{
+		"deepseek-r1",
+		"claude-4-sonnet-thinking",
+		"gemini-2.5-pro-preview-06-05",
+		"o3",
+	}, completion.Model[7:])
 	reasoningContent := ""
 	think := 0
 
@@ -184,9 +191,9 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 			if strings.HasPrefix(raw, "</think>") {
 				reasonContent = ""
 				think = 2
+				raw = raw[8:]
 			}
 
-			raw = ""
 			logger.Debug("----- think raw -----")
 			logger.Debug(reasonContent)
 			reasoningContent += reasonContent
@@ -237,6 +244,8 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 		setup    = 5
 	)
 
+	var isThinking = false
+
 	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return
@@ -260,16 +269,16 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 				return setup, []byte(""), err
 			}
 
-			if magic == 3 { // 假定它是错误标记
-				return setup, []byte("event: error"), err
+			if magic == 3 { // gzip+json 格式的消息
+				return setup, []byte("event: message"), err
 			}
 
-			if magic == 2 { // 内部异常信息
-				return setup, []byte("event: error"), err
+			if magic == 2 { // json 格式的消息
+				return setup, []byte("event: message"), err
 			}
 
-			if magic == 1 { // 系统提示词标记？
-				return setup, []byte("event: system"), err
+			if magic == 1 { // gzip 格式的消息
+				return setup, []byte("event: message"), err
 			}
 
 			// magic == 0
@@ -284,8 +293,8 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 		chunkLen = -1
 
 		i := len(chunk)
-		// 解码
-		if emit.IsEncoding(chunk, "gzip") {
+		// gzip 解码
+		if magic == 1 && emit.IsEncoding(chunk, "gzip") {
 			reader, gzErr := emit.DecodeGZip(io.NopCloser(bytes.NewReader(chunk)))
 			if gzErr != nil {
 				err = gzErr
@@ -293,7 +302,25 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			}
 			chunk, err = io.ReadAll(reader)
 		}
-		if magic == 0 {
+
+		// JSON 解码
+		if magic == 2 {
+			fmt.Println("magic == 2, chunk:", string(chunk))
+		}
+
+		// gzip+json 解码
+		if magic == 3 && emit.IsEncoding(chunk, "gzip") {
+			reader, gzErr := emit.DecodeGZip(io.NopCloser(bytes.NewReader(chunk)))
+			if gzErr != nil {
+				err = gzErr
+				return
+			}
+			chunk, err = io.ReadAll(reader)
+
+			fmt.Println("magic == 3, chunk:", string(chunk))
+		}
+
+		if magic == 0 || magic == 1 {
 			// println(hex.EncodeToString(chunk))
 			var message ResMessage
 			err = proto.Unmarshal(chunk, &message)
@@ -305,7 +332,25 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 				advance = i
 				return
 			}
-			chunk = []byte(message.Msg.Value)
+
+			chunk = []byte("")
+			if !isThinking && message.Msg.Thinking != nil {
+				isThinking = true
+				// Add <think> to the chunk
+				chunk = append(chunk, []byte("<think>\n")...)
+			}
+			if isThinking && message.Msg.Thinking != nil {
+				chunk = append(chunk, []byte(message.Msg.Thinking.Text)...)
+			}
+			if isThinking && message.Msg.Thinking == nil {
+				// Add </think> to the chunk
+				chunk = append(chunk, []byte("</think>\n")...)
+				isThinking = false
+			}
+			chunk = append(chunk, []byte(message.Msg.Value)...)
+			fmt.Println("message.Msg.Value", message.Msg.Value)
+			chunkStr := string(chunk)
+			fmt.Println("chunkStr", chunkStr)
 		}
 		return i, chunk, err
 	})
