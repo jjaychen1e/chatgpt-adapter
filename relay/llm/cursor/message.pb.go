@@ -299,31 +299,32 @@ func (x *BidiAppend_SessionKey) GetValue() string {
 }
 
 type ChatMessage_Content struct {
-	state                protoimpl.MessageState                `protogen:"open.v1"`
-	Messages             []*ChatMessage_Content_Message        `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
-	UnknownField2        uint32                                `protobuf:"varint,2,opt,name=unknown_field2,json=unknownField2,proto3" json:"unknown_field2,omitempty"`
-	Empty3               *string                               `protobuf:"bytes,3,opt,name=empty3,proto3,oneof" json:"empty3,omitempty"`
-	UnknownField4        uint32                                `protobuf:"varint,4,opt,name=unknown_field4,json=unknownField4,proto3" json:"unknown_field4,omitempty"`
-	Model                *ChatMessage_Content_Model            `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
-	UnknownField15       *ChatMessage_Content_UnknownField15   `protobuf:"bytes,15,opt,name=unknown_field15,json=unknownField15,proto3" json:"unknown_field15,omitempty"`
-	UnknownField19       uint32                                `protobuf:"varint,19,opt,name=unknown_field19,json=unknownField19,proto3" json:"unknown_field19,omitempty"`
-	LongContextMode      bool                                  `protobuf:"varint,22,opt,name=long_context_mode,json=longContextMode,proto3" json:"long_context_mode,omitempty"`
-	Uid                  string                                `protobuf:"bytes,23,opt,name=uid,proto3" json:"uid,omitempty"`
-	Info                 *ChatMessage_Content_Info             `protobuf:"bytes,26,opt,name=info,proto3" json:"info,omitempty"`
-	UnknownField27       uint32                                `protobuf:"varint,27,opt,name=unknown_field27,json=unknownField27,proto3" json:"unknown_field27,omitempty"`
-	Empty29              *string                               `protobuf:"bytes,29,opt,name=empty29,proto3,oneof" json:"empty29,omitempty"`
-	UnknownField30       *ChatMessage_Content_UnknownField30   `protobuf:"bytes,30,opt,name=unknown_field30,json=unknownField30,proto3" json:"unknown_field30,omitempty"`
-	UseFullInputsContext bool                                  `protobuf:"varint,35,opt,name=use_full_inputs_context,json=useFullInputsContext,proto3" json:"use_full_inputs_context,omitempty"`
-	UnknownField38       *uint32                               `protobuf:"varint,38,opt,name=unknown_field38,json=unknownField38,proto3,oneof" json:"unknown_field38,omitempty"`
-	UnknownField46       uint32                                `protobuf:"varint,46,opt,name=unknown_field46,json=unknownField46,proto3" json:"unknown_field46,omitempty"` // 2
-	Empty47              *string                               `protobuf:"bytes,47,opt,name=empty47,proto3,oneof" json:"empty47,omitempty"`
-	UnknownField48       *uint32                               `protobuf:"varint,48,opt,name=unknown_field48,json=unknownField48,proto3,oneof" json:"unknown_field48,omitempty"`
-	ThinkingLevel        StreamUnifiedChatRequestThinkingLevel `protobuf:"varint,49,opt,name=thinking_level,json=thinkingLevel,proto3,enum=cursor.StreamUnifiedChatRequestThinkingLevel" json:"thinking_level,omitempty"`
-	UnknownField51       *uint32                               `protobuf:"varint,51,opt,name=unknown_field51,json=unknownField51,proto3,oneof" json:"unknown_field51,omitempty"`
-	UnknownField53       *uint32                               `protobuf:"varint,53,opt,name=unknown_field53,json=unknownField53,proto3,oneof" json:"unknown_field53,omitempty"`
-	Agent                string                                `protobuf:"bytes,54,opt,name=agent,proto3" json:"agent,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                   protoimpl.MessageState                `protogen:"open.v1"`
+	Messages                []*ChatMessage_Content_Message        `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
+	UnknownField2           uint32                                `protobuf:"varint,2,opt,name=unknown_field2,json=unknownField2,proto3" json:"unknown_field2,omitempty"`
+	Empty3                  *string                               `protobuf:"bytes,3,opt,name=empty3,proto3,oneof" json:"empty3,omitempty"`
+	UnknownField4           uint32                                `protobuf:"varint,4,opt,name=unknown_field4,json=unknownField4,proto3" json:"unknown_field4,omitempty"`
+	Model                   *ChatMessage_Content_Model            `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
+	UnknownField15          *ChatMessage_Content_UnknownField15   `protobuf:"bytes,15,opt,name=unknown_field15,json=unknownField15,proto3" json:"unknown_field15,omitempty"`
+	UnknownField19          uint32                                `protobuf:"varint,19,opt,name=unknown_field19,json=unknownField19,proto3" json:"unknown_field19,omitempty"`
+	LongContextMode         bool                                  `protobuf:"varint,22,opt,name=long_context_mode,json=longContextMode,proto3" json:"long_context_mode,omitempty"`
+	Uid                     string                                `protobuf:"bytes,23,opt,name=uid,proto3" json:"uid,omitempty"`
+	Info                    *ChatMessage_Content_Info             `protobuf:"bytes,26,opt,name=info,proto3" json:"info,omitempty"`
+	UnknownField27          uint32                                `protobuf:"varint,27,opt,name=unknown_field27,json=unknownField27,proto3" json:"unknown_field27,omitempty"`
+	Empty29                 *string                               `protobuf:"bytes,29,opt,name=empty29,proto3,oneof" json:"empty29,omitempty"`
+	UnknownField30          *ChatMessage_Content_UnknownField30   `protobuf:"bytes,30,opt,name=unknown_field30,json=unknownField30,proto3" json:"unknown_field30,omitempty"`
+	UseFullInputsContext    bool                                  `protobuf:"varint,35,opt,name=use_full_inputs_context,json=useFullInputsContext,proto3" json:"use_full_inputs_context,omitempty"`
+	UnknownField38          *uint32                               `protobuf:"varint,38,opt,name=unknown_field38,json=unknownField38,proto3,oneof" json:"unknown_field38,omitempty"`
+	UnknownField46          uint32                                `protobuf:"varint,46,opt,name=unknown_field46,json=unknownField46,proto3" json:"unknown_field46,omitempty"` // 2
+	Empty47                 *string                               `protobuf:"bytes,47,opt,name=empty47,proto3,oneof" json:"empty47,omitempty"`
+	UnknownField48          *uint32                               `protobuf:"varint,48,opt,name=unknown_field48,json=unknownField48,proto3,oneof" json:"unknown_field48,omitempty"`
+	ThinkingLevel           StreamUnifiedChatRequestThinkingLevel `protobuf:"varint,49,opt,name=thinking_level,json=thinkingLevel,proto3,enum=cursor.StreamUnifiedChatRequestThinkingLevel" json:"thinking_level,omitempty"`
+	UnknownField51          *uint32                               `protobuf:"varint,51,opt,name=unknown_field51,json=unknownField51,proto3,oneof" json:"unknown_field51,omitempty"`
+	UnknownField53          *uint32                               `protobuf:"varint,53,opt,name=unknown_field53,json=unknownField53,proto3,oneof" json:"unknown_field53,omitempty"`
+	Agent                   string                                `protobuf:"bytes,54,opt,name=agent,proto3" json:"agent,omitempty"`
+	SupportsMermaidDiagrams *bool                                 `protobuf:"varint,65,opt,name=supports_mermaid_diagrams,json=supportsMermaidDiagrams,proto3,oneof" json:"supports_mermaid_diagrams,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ChatMessage_Content) Reset() {
@@ -508,6 +509,13 @@ func (x *ChatMessage_Content) GetAgent() string {
 		return x.Agent
 	}
 	return ""
+}
+
+func (x *ChatMessage_Content) GetSupportsMermaidDiagrams() bool {
+	if x != nil && x.SupportsMermaidDiagrams != nil {
+		return *x.SupportsMermaidDiagrams
+	}
+	return false
 }
 
 type ChatMessage_Content_Message struct {
@@ -1037,9 +1045,9 @@ const file_relay_llm_cursor_message_proto_rawDesc = "" +
 	"SessionKey\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\"%\n" +
 	"\rStreamUnified\x12\x14\n" +
-	"\x05value\x18\x01 \x01(\tR\x05value\"\x9e\x10\n" +
+	"\x05value\x18\x01 \x01(\tR\x05value\"\xfd\x10\n" +
 	"\vChatMessage\x125\n" +
-	"\acontent\x18\x01 \x01(\v2\x1b.cursor.ChatMessage.ContentR\acontent\x1a\xd7\x0f\n" +
+	"\acontent\x18\x01 \x01(\v2\x1b.cursor.ChatMessage.ContentR\acontent\x1a\xb6\x10\n" +
 	"\aContent\x12?\n" +
 	"\bmessages\x18\x01 \x03(\v2#.cursor.ChatMessage.Content.MessageR\bmessages\x12%\n" +
 	"\x0eunknown_field2\x18\x02 \x01(\rR\runknownField2\x12\x1b\n" +
@@ -1062,7 +1070,8 @@ const file_relay_llm_cursor_message_proto_rawDesc = "" +
 	"\x0ethinking_level\x181 \x01(\x0e2-.cursor.StreamUnifiedChatRequestThinkingLevelR\rthinkingLevel\x12,\n" +
 	"\x0funknown_field51\x183 \x01(\rH\x05R\x0eunknownField51\x88\x01\x01\x12,\n" +
 	"\x0funknown_field53\x185 \x01(\rH\x06R\x0eunknownField53\x88\x01\x01\x12\x14\n" +
-	"\x05agent\x186 \x01(\tR\x05agent\x1a\xc0\x01\n" +
+	"\x05agent\x186 \x01(\tR\x05agent\x12?\n" +
+	"\x19supports_mermaid_diagrams\x18A \x01(\bH\aR\x17supportsMermaidDiagrams\x88\x01\x01\x1a\xc0\x01\n" +
 	"\aMessage\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12%\n" +
 	"\x0eunknown_field2\x18\x02 \x01(\rR\runknownField2\x12\x10\n" +
@@ -1106,7 +1115,8 @@ const file_relay_llm_cursor_message_proto_rawDesc = "" +
 	"\b_empty47B\x12\n" +
 	"\x10_unknown_field48B\x12\n" +
 	"\x10_unknown_field51B\x12\n" +
-	"\x10_unknown_field53\"\xc0\x02\n" +
+	"\x10_unknown_field53B\x1c\n" +
+	"\x1a_supports_mermaid_diagrams\"\xc0\x02\n" +
 	"\n" +
 	"ResMessage\x12(\n" +
 	"\x03msg\x18\x02 \x01(\v2\x16.cursor.ResMessage.MsgR\x03msg\x1a\x87\x02\n" +

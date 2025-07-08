@@ -87,6 +87,7 @@ message ChatMessage {
     optional uint32 unknown_field51 = 51;
     optional uint32 unknown_field53 = 53;
     string agent = 54;
+    optional bool supports_mermaid_diagrams = 65;
   }
 
   Content content = 1;

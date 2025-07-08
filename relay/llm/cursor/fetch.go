@@ -157,6 +157,8 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		maxMode = true
 	}
 
+	supportsMermaidDiagrams := true
+
 	message := &ChatMessage{
 		Content: &ChatMessage_Content{
 			Messages:      messages,
@@ -193,15 +195,16 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 				Uuid:          mid,
 				UnknownField3: 1,
 			},
-			UseFullInputsContext: true,
-			UnknownField38:       &Zero,
-			UnknownField46:       1,
-			Empty47:              &Empty,
-			UnknownField48:       &Zero,
-			ThinkingLevel:        thinkingLevel,
-			UnknownField51:       &Zero,
-			UnknownField53:       &Zero,
-			Agent:                "Ask",
+			UseFullInputsContext:    true,
+			UnknownField38:          &Zero,
+			UnknownField46:          1,
+			Empty47:                 &Empty,
+			UnknownField48:          &Zero,
+			ThinkingLevel:           thinkingLevel,
+			UnknownField51:          &Zero,
+			UnknownField53:          &Zero,
+			Agent:                   "Ask",
+			SupportsMermaidDiagrams: &supportsMermaidDiagrams,
 		},
 	}
 
