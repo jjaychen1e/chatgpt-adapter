@@ -337,10 +337,10 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			if !isThinking && message.Msg.Thinking != nil {
 				isThinking = true
 				// Add <think> to the chunk
-				chunk = append(chunk, []byte("\n\n<think>\n\n")...)
+				chunk = append(chunk, []byte("<think>\n\n")...)
 			}
 			if isThinking && message.Msg.Thinking != nil {
-				chunk = append(chunk, []byte(message.Msg.Thinking.Text)...)
+				chunk = append(chunk, []byte(message.Msg.Thinking.Text+"\n\n")...)
 			}
 			if isThinking && message.Msg.Thinking == nil {
 				// Add </think> to the chunk
@@ -348,8 +348,6 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 				isThinking = false
 			}
 			chunk = append(chunk, []byte(message.Msg.Value)...)
-			chunkStr := string(chunk)
-			fmt.Println("chunkStr", chunkStr)
 		}
 		return i, chunk, err
 	})
