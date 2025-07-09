@@ -340,7 +340,7 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 				chunk = append(chunk, []byte("<think>\n\n")...)
 			}
 			if isThinking && message.Msg.Thinking != nil {
-				chunk = append(chunk, []byte(message.Msg.Thinking.Text+"\n\n")...)
+				chunk = append(chunk, []byte(message.Msg.Thinking.Text)...)
 			}
 			if isThinking && message.Msg.Thinking == nil {
 				// Add </think> to the chunk
