@@ -155,6 +155,12 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	maxMode := false
 	if modelName == "claude-4-opus" || modelName == "claude-4-opus-thinking" {
 		maxMode = true
+	} else if modelName == "claude-4-sonnet-max" {
+		maxMode = true
+		modelName = "claude-4-sonnet"
+	} else if modelName == "claude-4-sonnet-thinking-max" {
+		maxMode = true
+		modelName = "claude-4-sonnet-thinking"
 	}
 
 	supportsMermaidDiagrams := true
