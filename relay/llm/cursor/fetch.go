@@ -163,6 +163,7 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		modelName = "claude-4-sonnet-thinking"
 	} else if modelName == "gemini-2.5-pro-latest-max" {
 		maxMode = true
+		modelName = "gemini-2.5-pro-latest"
 	}
 
 	supportsMermaidDiagrams := true
