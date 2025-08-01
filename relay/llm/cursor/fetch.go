@@ -4,6 +4,7 @@ import (
 	"chatgpt-adapter/core/cache"
 	"chatgpt-adapter/core/common"
 	"chatgpt-adapter/core/gin/model"
+	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
 	"crypto/sha256"
 	"encoding/base64"
@@ -125,6 +126,26 @@ func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte)
 	return
 }
 
+// extractContentText extracts text content from either string or array format
+func extractContentText(message model.Keyv[interface{}]) string {
+	if message.IsString("content") {
+		// Simple string content
+		return message.GetString("content")
+	}
+
+	if message.IsSlice("content") {
+		// Array content - extract text from all text objects using existing utility
+		slice := stream.
+			Map(stream.OfSlice(message.GetSlice("content")), response.ConvertToText).
+			Filter(func(k string) bool { return k != "" }).
+			ToSlice()
+		return strings.Join(slice, "\n\n")
+	}
+
+	// Fallback to string conversion
+	return message.GetString("content")
+}
+
 func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	mid := uuid.NewString()
 	messages := stream.Map(stream.OfSlice(completion.Messages), func(message model.Keyv[interface{}]) *ChatMessage_Content_Message {
@@ -132,7 +153,7 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 			Empty51:        &Empty,
 			Uid:            mid,
 			Role:           elseOf[uint32](message.Is("role", "user"), 1, 2),
-			Value:          message.GetString("content"),
+			Value:          extractContentText(message),
 			UnknownField2:  1,
 			UnknownField29: 1,
 		}
