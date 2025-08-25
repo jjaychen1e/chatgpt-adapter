@@ -29,7 +29,7 @@ var (
 	Empty        = ""
 	Zero  uint32 = 0
 
-	Version = "0.50.5"
+	Version = "1.0.0"
 )
 
 func fetch(ctx *gin.Context, env *env.Environment, cookie string, buffer []byte) (response *http.Response, err error) {
