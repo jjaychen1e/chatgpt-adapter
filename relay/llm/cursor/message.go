@@ -54,9 +54,9 @@ func (ce chunkError) Error() string {
 	return fmt.Sprintf("[%s] %s", ce.E.Code, message)
 }
 
-func waitMessage(r *http.Response, cancel func(str string) bool) (content string, err error) {
+func waitMessage(ctx *gin.Context, r *http.Response, cancel func(str string) bool) (content string, err error) {
 	defer r.Body.Close()
-	scanner := newScanner(r.Body, r.Header)
+	scanner := newScanner(r.Body, ctx.Request.Header)
 	for {
 		if !scanner.Scan() {
 			break
@@ -126,7 +126,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 	})
 
-	scanner := newScanner(r.Body, r.Header)
+	scanner := newScanner(r.Body, ctx.Request.Header)
 	for {
 		if !scanner.Scan() {
 			raw := response.ExecMatchers(matchers, "", true)
