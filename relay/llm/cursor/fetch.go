@@ -163,7 +163,7 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		messages[0].Role = 1 // Convert to user role
 	}
 
-	thinkingLevel := StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_UNSPECIFIED
+	thinkingLevel := StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_HIGH
 	if completion.ReasoningEffort == "low" {
 		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_MEDIUM
 	} else if completion.ReasoningEffort == "medium" {
@@ -171,6 +171,8 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	} else if completion.ReasoningEffort == "high" {
 		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_HIGH
 	}
+
+	logger.Info("Reasoning effort: " + thinkingLevel.String())
 
 	modelName := completion.Model[7:]
 	maxMode := false
