@@ -6,6 +6,7 @@ import (
 	"chatgpt-adapter/core/gin/model"
 	"chatgpt-adapter/core/gin/response"
 	"chatgpt-adapter/core/logger"
+
 	"github.com/gin-gonic/gin"
 	"github.com/iocgo/sdk/env"
 )
@@ -36,7 +37,7 @@ func toolChoice(ctx *gin.Context, env *env.Environment, cookie string, completio
 			return "", err
 		}
 
-		return waitMessage(r, toolcall.Cancel)
+		return waitMessage(ctx, r, toolcall.Cancel)
 	})
 
 	if err != nil {
