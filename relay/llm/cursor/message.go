@@ -56,7 +56,7 @@ func (ce chunkError) Error() string {
 
 func waitMessage(r *http.Response, cancel func(str string) bool) (content string, err error) {
 	defer r.Body.Close()
-	scanner := newScanner(r.Body)
+	scanner := newScanner(r.Body, r.Header)
 	for {
 		if !scanner.Scan() {
 			break
@@ -126,7 +126,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 	})
 
-	scanner := newScanner(r.Body)
+	scanner := newScanner(r.Body, r.Header)
 	for {
 		if !scanner.Scan() {
 			raw := response.ExecMatchers(matchers, "", true)
@@ -233,7 +233,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	return
 }
 
-func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
+func newScanner(body io.ReadCloser, header http.Header) (scanner *bufio.Scanner) {
 	// 每个字节占8位
 	// 00000011 第一个字节是占位符，应该是用来代表消息类型的 假定 0: 消息体/proto, 1: 系统提示词/gzip, 2、3: 错误标记/gzip
 	// 00000000 00000000 00000010 11011000 4个字节描述包体大小
@@ -345,6 +345,10 @@ func newScanner(body io.ReadCloser) (scanner *bufio.Scanner) {
 			if isThinking && message.Msg.Thinking == nil {
 				// Add </think> to the chunk
 				chunk = append(chunk, []byte("</think>\n\n")...)
+				// Check if user agent contains Raycast and add separator
+				if userAgent := header.Get("User-Agent"); strings.Contains(userAgent, "Raycast") {
+					chunk = append(chunk, []byte("---\n\n")...)
+				}
 				isThinking = false
 			}
 			chunk = append(chunk, []byte(message.Msg.Value)...)
