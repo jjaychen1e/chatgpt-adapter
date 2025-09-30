@@ -164,11 +164,12 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	}
 
 	thinkingLevel := StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_HIGH
-	if completion.ReasoningEffort == "low" {
+	switch completion.ReasoningEffort {
+	case "low":
 		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_MEDIUM
-	} else if completion.ReasoningEffort == "medium" {
+	case "medium":
 		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_MEDIUM
-	} else if completion.ReasoningEffort == "high" {
+	case "high":
 		thinkingLevel = StreamUnifiedChatRequestThinkingLevel_THINKING_LEVEL_HIGH
 	}
 
@@ -176,15 +177,24 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 
 	modelName := completion.Model[7:]
 	maxMode := false
-	if modelName == "claude-4-opus" || modelName == "claude-4.1-opus" || modelName == "claude-4-opus-thinking" || modelName == "claude-4.1-opus-thinking" {
+	switch modelName {
+	case "claude-4-opus", "claude-4-opus-thinking":
 		maxMode = true
-	} else if modelName == "claude-4-sonnet-max" || modelName == "claude-4.5-sonnet-max" {
+	case "claude-4.1-opus", "claude-4.1-opus-thinking":
+		maxMode = true
+	case "claude-4-sonnet-max":
 		maxMode = true
 		modelName = "claude-4-sonnet"
-	} else if modelName == "claude-4-sonnet-thinking-max" || modelName == "claude-4.5-sonnet-thinking-max" {
+	case "claude-4.5-sonnet-max":
+		maxMode = true
+		modelName = "claude-4.5-sonnet"
+	case "claude-4-sonnet-thinking-max":
 		maxMode = true
 		modelName = "claude-4-sonnet-thinking"
-	} else if modelName == "gemini-2.5-pro-latest-max" {
+	case "claude-4.5-sonnet-thinking-max":
+		maxMode = true
+		modelName = "claude-4.5-sonnet-thinking"
+	case "gemini-2.5-pro-latest-max":
 		maxMode = true
 		modelName = "gemini-2.5-pro-latest"
 	}
