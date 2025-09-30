@@ -176,12 +176,12 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 
 	modelName := completion.Model[7:]
 	maxMode := false
-	if modelName == "claude-4-opus" || modelName == "claude-4-opus-thinking" {
+	if modelName == "claude-4-opus" || modelName == "claude-4.1-opus" || modelName == "claude-4-opus-thinking" || modelName == "claude-4.1-opus-thinking" {
 		maxMode = true
-	} else if modelName == "claude-4-sonnet-max" {
+	} else if modelName == "claude-4-sonnet-max" || modelName == "claude-4.5-sonnet-max" {
 		maxMode = true
 		modelName = "claude-4-sonnet"
-	} else if modelName == "claude-4-sonnet-thinking-max" {
+	} else if modelName == "claude-4-sonnet-thinking-max" || modelName == "claude-4.5-sonnet-thinking-max" {
 		maxMode = true
 		modelName = "claude-4-sonnet-thinking"
 	} else if modelName == "gemini-2.5-pro-latest-max" {
