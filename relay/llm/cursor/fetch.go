@@ -197,6 +197,9 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	case "gemini-2.5-pro-latest-max":
 		maxMode = true
 		modelName = "gemini-2.5-pro-latest"
+	case "gemini-3-pro-preview-max":
+		maxMode = true
+		modelName = "gemini-3-pro-preview"
 	}
 
 	supportsMermaidDiagrams := true
