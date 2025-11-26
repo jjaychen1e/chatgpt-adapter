@@ -178,9 +178,7 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	modelName := completion.Model[7:]
 	maxMode := false
 	switch modelName {
-	case "claude-4-opus", "claude-4-opus-thinking":
-		maxMode = true
-	case "claude-4.1-opus", "claude-4.1-opus-thinking":
+	case "claude-4-opus", "claude-4-opus-thinking", "claude-4.1-opus", "claude-4.1-opus-thinking", "claude-4.5-opus-high", "claude-4.5-opus-high-thinking":
 		maxMode = true
 	case "claude-4-sonnet-max":
 		maxMode = true
