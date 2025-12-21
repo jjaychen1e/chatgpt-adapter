@@ -198,6 +198,10 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 	case "gemini-3-pro-preview-max":
 		maxMode = true
 		modelName = "gemini-3-pro-preview"
+	case "gemini-3-flash-preview":
+		maxMode = true
+	case "gpt-5.2-high-fast":
+		maxMode = true
 	}
 
 	supportsMermaidDiagrams := true
