@@ -202,6 +202,10 @@ func convertRequest(completion model.Completion) (buffer []byte, err error) {
 		maxMode = true
 	case "gpt-5.2-high-fast":
 		maxMode = true
+	case "claude-4.6-opus-max-thinking":
+		maxMode = true
+	case "gpt-5.3-codex-xhigh-fast":
+		maxMode = true
 	}
 
 	supportsMermaidDiagrams := true
