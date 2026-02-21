@@ -113,7 +113,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	thinkReason := env.Env.GetBool("server.think_reason")
 	modelName := completion.Model[7:]
 	thinkReason = thinkReason && isReasoningModel(modelName)
-	logger.Infof("model=%s, thinkReason=%v", modelName, thinkReason)
 	reasoningContent := ""
 	think := 0
 
@@ -127,6 +126,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	for {
 		if !scanner.Scan() {
 			raw := response.ExecMatchers(matchers, "", true)
+			logger.Infof("[truncation-debug] scanner EOF (first), matcher flush=%q", raw)
 			if raw != "" && sse {
 				response.SSEResponse(ctx, Model, raw, created)
 			}
@@ -140,6 +140,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		if !scanner.Scan() {
 			raw := response.ExecMatchers(matchers, "", true)
+			logger.Infof("[truncation-debug] scanner EOF (second), matcher flush=%q", raw)
 			if raw != "" && sse {
 				response.SSEResponse(ctx, Model, raw, created)
 			}
@@ -228,6 +229,12 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		return
 	}
 
+	tail := content
+	if len(tail) > 100 {
+		tail = "..." + tail[len(tail)-100:]
+	}
+	logger.Infof("[truncation-debug] final content tail=%q, len=%d", tail, len(content))
+
 	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(reasoningContent+content, tokens))
 	if !sse {
 		response.ReasonResponse(ctx, Model, content, reasoningContent)
@@ -288,10 +295,6 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 
 		if atEOF && len(data) == 0 {
 			return
-		}
-
-		if atEOF {
-			return len(data), data, err
 		}
 
 		if chunkLen == -1 && len(data) < setup {

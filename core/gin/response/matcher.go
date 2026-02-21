@@ -265,6 +265,10 @@ state:
 		if strings.Contains(content, mat.Find) {
 			state = MatMatched // 命中
 		} else {
+			if over { // 已经没有后续输入了，释放缓存
+				mat.cache = ""
+				return MatDefault, content
+			}
 			result = "" // 等待下次输入
 			return
 		}
