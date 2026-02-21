@@ -85,7 +85,7 @@ func waitMessage(ctx *gin.Context, r *http.Response, cancel func(str string) boo
 			return
 		}
 
-		if event[7:] == "system" || bytes.Equal(chunk, []byte("{}")) {
+		if event[7:] == "system" || event[7:] == "thinking" || bytes.Equal(chunk, []byte("{}")) {
 			continue
 		}
 
@@ -111,12 +111,8 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	completion := common.GetGinCompletion(ctx)
 	tokens := ctx.GetInt(ginTokens)
 	thinkReason := env.Env.GetBool("server.think_reason")
-	thinkReason = thinkReason && slices.Contains([]string{
-		"deepseek-r1",
-		"claude-4-sonnet-thinking",
-		"gemini-2.5-pro-preview-06-05",
-		"o3",
-	}, completion.Model[7:])
+	modelName := completion.Model[7:]
+	thinkReason = thinkReason && isReasoningModel(modelName)
 	reasoningContent := ""
 	think := 0
 
@@ -178,26 +174,33 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		raw := string(chunk)
 		reasonContent := ""
-		if thinkReason && think == 0 {
-			if strings.HasPrefix(raw, "<think>") {
-				reasonContent = raw[7:]
+		eventType := event[7:]
+
+		if eventType == "thinking" {
+			if thinkReason {
+				reasonContent = raw
+				reasoningContent += raw
 				raw = ""
 				think = 1
+				logger.Debug("----- think raw -----")
+				logger.Debug(reasonContent)
+				goto label
 			}
-		}
-
-		if thinkReason && think == 1 {
-			reasonContent = raw
-			if strings.HasPrefix(raw, "</think>") {
-				reasonContent = ""
-				think = 2
-				raw = raw[8:]
+			// Fallback: wrap in <think> tags in content for clients that don't support reasoning_content
+			if think == 0 {
+				think = 1
+				raw = "<think>\n" + raw
 			}
-
-			logger.Debug("----- think raw -----")
-			logger.Debug(reasonContent)
-			reasoningContent += reasonContent
-			goto label
+		} else {
+			// Transition from thinking to content
+			if think == 1 {
+				if thinkReason {
+					think = 2
+				} else {
+					think = 2
+					raw = "\n</think>\n" + raw
+				}
+			}
 		}
 
 		logger.Debug("----- raw -----")
@@ -224,7 +227,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		return
 	}
 
-	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(content, tokens))
+	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(reasoningContent+content, tokens))
 	if !sse {
 		response.ReasonResponse(ctx, Model, content, reasoningContent)
 	} else {
@@ -233,7 +236,31 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	return
 }
 
-func newScanner(body io.ReadCloser, header http.Header) (scanner *bufio.Scanner) {
+// isReasoningModel checks if the model name is a reasoning/thinking model.
+// Reads from config: cursor.reasoning_models (exact matches) and cursor.reasoning_patterns (substring matches).
+// Falls back to built-in defaults if not configured.
+func isReasoningModel(modelName string) bool {
+	models := env.Env.GetStringSlice("cursor.reasoning_models")
+	patterns := env.Env.GetStringSlice("cursor.reasoning_patterns")
+
+	if len(models) == 0 && len(patterns) == 0 {
+		// Default fallback when not configured
+		models = []string{"deepseek-r1", "o3", "think3"}
+		patterns = []string{"thinking", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3"}
+	}
+
+	if slices.Contains(models, modelName) {
+		return true
+	}
+	for _, pattern := range patterns {
+		if strings.Contains(modelName, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 	// 每个字节占8位
 	// 00000011 第一个字节是占位符，应该是用来代表消息类型的 假定 0: 消息体/proto, 1: 系统提示词/gzip, 2、3: 错误标记/gzip
 	// 00000000 00000000 00000010 11011000 4个字节描述包体大小
@@ -244,9 +271,18 @@ func newScanner(body io.ReadCloser, header http.Header) (scanner *bufio.Scanner)
 		setup    = 5
 	)
 
-	var isThinking = false
+	// Queue for buffered tokens when a single protobuf message
+	// produces multiple event/data pairs (e.g. thinking + content transition)
+	var pendingTokens [][]byte
 
 	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		// Drain pending tokens first (no advancing the input)
+		if len(pendingTokens) > 0 {
+			token = pendingTokens[0]
+			pendingTokens = pendingTokens[1:]
+			return 0, token, nil
+		}
+
 		if atEOF && len(data) == 0 {
 			return
 		}
@@ -277,12 +313,9 @@ func newScanner(body io.ReadCloser, header http.Header) (scanner *bufio.Scanner)
 				return setup, []byte("event: message"), err
 			}
 
-			if magic == 1 { // gzip 格式的消息
-				return setup, []byte("event: message"), err
-			}
-
-			// magic == 0
-			return setup, []byte("event: message"), err
+			// magic == 0 or magic == 1: defer event type to data phase
+			// (need to decode protobuf first to know if it's thinking or content)
+			return setup, nil, nil
 		}
 
 		if len(data) < chunkLen {
@@ -333,25 +366,33 @@ func newScanner(body io.ReadCloser, header http.Header) (scanner *bufio.Scanner)
 				return
 			}
 
-			chunk = []byte("")
-			if !isThinking && message.Msg.Thinking != nil {
-				isThinking = true
-				// Add <think> to the chunk
-				chunk = append(chunk, []byte("<think>\n\n")...)
+			hasThinking := message.Msg.Thinking != nil && message.Msg.Thinking.Text != ""
+			hasValue := message.Msg.Value != ""
+
+			if hasThinking && hasValue {
+				// Transition: thinking ends and content begins in same protobuf message.
+				// Return thinking event token now, queue thinking data + content event/data.
+				pendingTokens = append(pendingTokens,
+					[]byte(message.Msg.Thinking.Text),
+					[]byte("event: message"),
+					[]byte(message.Msg.Value),
+				)
+				return i, []byte("event: thinking"), nil
+			} else if hasThinking {
+				// Pure thinking chunk
+				pendingTokens = append(pendingTokens,
+					[]byte(message.Msg.Thinking.Text),
+				)
+				return i, []byte("event: thinking"), nil
+			} else if hasValue {
+				// Pure content chunk
+				pendingTokens = append(pendingTokens,
+					[]byte(message.Msg.Value),
+				)
+				return i, []byte("event: message"), nil
+			} else {
+				return i, []byte(""), nil
 			}
-			if isThinking && message.Msg.Thinking != nil {
-				chunk = append(chunk, []byte(message.Msg.Thinking.Text)...)
-			}
-			if isThinking && message.Msg.Thinking == nil {
-				// Add </think> to the chunk
-				chunk = append(chunk, []byte("</think>\n\n")...)
-				// Check if user agent contains Raycast and add separator
-				if userAgent := header.Get("User-Agent"); strings.Contains(userAgent, "Raycast") {
-					chunk = append(chunk, []byte("---\n\n")...)
-				}
-				isThinking = false
-			}
-			chunk = append(chunk, []byte(message.Msg.Value)...)
 		}
 		return i, chunk, err
 	})
