@@ -113,6 +113,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	thinkReason := env.Env.GetBool("server.think_reason")
 	modelName := completion.Model[7:]
 	thinkReason = thinkReason && isReasoningModel(modelName)
+	logger.Infof("model=%s, thinkReason=%v", modelName, thinkReason)
 	reasoningContent := ""
 	think := 0
 
