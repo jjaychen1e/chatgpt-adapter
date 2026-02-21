@@ -126,7 +126,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	for {
 		if !scanner.Scan() {
 			raw := response.ExecMatchers(matchers, "", true)
-			logger.Infof("[truncation-debug] scanner EOF (first), matcher flush=%q", raw)
 			if raw != "" && sse {
 				response.SSEResponse(ctx, Model, raw, created)
 			}
@@ -140,7 +139,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 
 		if !scanner.Scan() {
 			raw := response.ExecMatchers(matchers, "", true)
-			logger.Infof("[truncation-debug] scanner EOF (second), matcher flush=%q", raw)
 			if raw != "" && sse {
 				response.SSEResponse(ctx, Model, raw, created)
 			}
@@ -228,12 +226,6 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	if content == "" && response.NotSSEHeader(ctx) {
 		return
 	}
-
-	tail := content
-	if len(tail) > 100 {
-		tail = "..." + tail[len(tail)-100:]
-	}
-	logger.Infof("[truncation-debug] final content tail=%q, len=%d", tail, len(content))
 
 	ctx.Set(vars.GinCompletionUsage, response.CalcUsageTokens(reasoningContent+content, tokens))
 	if !sse {
