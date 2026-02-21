@@ -244,9 +244,11 @@ func isReasoningModel(modelName string) bool {
 	models := env.Env.GetStringSlice("cursor.reasoning_models")
 	patterns := env.Env.GetStringSlice("cursor.reasoning_patterns")
 
-	if len(models) == 0 && len(patterns) == 0 {
-		// Default fallback when not configured
+	// Apply defaults independently — user can override one without losing the other
+	if len(models) == 0 {
 		models = []string{"deepseek-r1", "o3", "think3"}
+	}
+	if len(patterns) == 0 {
 		patterns = []string{"thinking", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-3"}
 	}
 
