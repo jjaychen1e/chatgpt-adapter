@@ -125,6 +125,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 	scanner := newScanner(r.Body, ctx.Request.Header)
 	for {
 		if !scanner.Scan() {
+			logger.Infof("[waitResponse] scanner EOF at event-scan (1st)")
 			raw := response.ExecMatchers(matchers, "", true)
 			if raw != "" && sse {
 				response.SSEResponse(ctx, Model, raw, created)
@@ -138,6 +139,7 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		}
 
 		if !scanner.Scan() {
+			logger.Infof("[waitResponse] scanner EOF at data-scan (2nd)")
 			raw := response.ExecMatchers(matchers, "", true)
 			if raw != "" && sse {
 				response.SSEResponse(ctx, Model, raw, created)
@@ -223,6 +225,16 @@ func waitResponse(ctx *gin.Context, r *http.Response, sse bool) (content string)
 		content += raw
 	}
 
+	if err := scanner.Err(); err != nil {
+		logger.Errorf("[waitResponse] scanner error: %v", err)
+	}
+	contentRunes := []rune(content)
+	tailLen := 100
+	if len(contentRunes) < tailLen {
+		tailLen = len(contentRunes)
+	}
+	logger.Infof("[waitResponse] done: contentLen=%d, tail=%q", len(contentRunes), string(contentRunes[len(contentRunes)-tailLen:]))
+
 	if content == "" && response.NotSSEHeader(ctx) {
 		return
 	}
@@ -296,6 +308,7 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 		if chunkLen == -1 {
 			magic = data[0]
 			chunkLen = bytesToInt32(data[1:setup])
+			logger.Infof("[scanner] header: magic=%d, chunkLen=%d, dataLen=%d, atEOF=%v", magic, chunkLen, len(data), atEOF)
 
 			// 这部分应该是分割标记？或者补位
 			if magic == 0 && chunkLen == 0 {
@@ -317,6 +330,9 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 		}
 
 		if len(data) < chunkLen {
+			if atEOF {
+				logger.Errorf("[scanner] TRUNCATED: need %d bytes, have %d, atEOF=true", chunkLen, len(data))
+			}
 			return
 		}
 
@@ -328,6 +344,7 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 		if magic == 1 && emit.IsEncoding(chunk, "gzip") {
 			reader, gzErr := emit.DecodeGZip(io.NopCloser(bytes.NewReader(chunk)))
 			if gzErr != nil {
+				logger.Errorf("[scanner] gzip decode FAILED: magic=%d, err=%v", magic, gzErr)
 				err = gzErr
 				return
 			}
@@ -343,6 +360,7 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 		if magic == 3 && emit.IsEncoding(chunk, "gzip") {
 			reader, gzErr := emit.DecodeGZip(io.NopCloser(bytes.NewReader(chunk)))
 			if gzErr != nil {
+				logger.Errorf("[scanner] gzip decode FAILED: magic=%d, err=%v", magic, gzErr)
 				err = gzErr
 				return
 			}
@@ -356,9 +374,11 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 			var message ResMessage
 			err = proto.Unmarshal(chunk, &message)
 			if err != nil {
+				logger.Errorf("[scanner] proto.Unmarshal FAILED: magic=%d, chunkLen=%d, err=%v", magic, len(chunk), err)
 				return
 			}
 			if message.Msg == nil {
+				logger.Infof("[scanner] proto: msg=nil, magic=%d", magic)
 				chunk = []byte("")
 				advance = i
 				return
@@ -366,6 +386,7 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 
 			hasThinking := message.Msg.Thinking != nil && message.Msg.Thinking.Text != ""
 			hasValue := message.Msg.Value != ""
+			logger.Infof("[scanner] proto: hasThinking=%v, hasValue=%v, valueLen=%d", hasThinking, hasValue, len(message.Msg.Value))
 
 			if hasThinking && hasValue {
 				// Transition: thinking ends and content begins in same protobuf message.
