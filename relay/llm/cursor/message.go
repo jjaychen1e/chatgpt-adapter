@@ -326,7 +326,9 @@ func newScanner(body io.ReadCloser, _ http.Header) (scanner *bufio.Scanner) {
 
 			// magic == 0 or magic == 1: defer event type to data phase
 			// (need to decode protobuf first to know if it's thinking or content)
-			return setup, nil, nil
+			// Must return non-nil token: at EOF, returning (advance>0, nil, nil)
+			// causes bufio.Scanner to stop immediately without processing remaining data.
+			return setup, []byte(""), nil
 		}
 
 		if len(data) < chunkLen {
